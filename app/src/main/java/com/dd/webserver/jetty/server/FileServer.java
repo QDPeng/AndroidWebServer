@@ -13,7 +13,7 @@ import org.eclipse.jetty.server.handler.ResourceHandler;
  */
 public class FileServer {
     private static final String TAG = "FileServer";
-    private static final String DEFAULT_DIR = "/mnt/usb/sda1";
+    private static final String DEFAULT_DIR = "/mnt";//mnt/usb/sda1
     private Context mContext;
     private int mPort = 8090;
     private String mShareFolder = DEFAULT_DIR;

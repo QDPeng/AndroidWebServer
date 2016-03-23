@@ -36,6 +36,7 @@ import android.util.Log;
 
 import com.dd.webserver.ftp.server.SessionThread;
 import com.dd.webserver.ftp.server.TcpListener;
+import com.dd.webserver.util.LogUtil;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -80,7 +81,7 @@ public class FsService extends Service implements Runnable {
 
     private FsServiceCallBack mCallBack = null;
 
-    public interface FsServiceCallBack{
+    public interface FsServiceCallBack {
         public void onError(Exception e);
     }
 
@@ -170,14 +171,14 @@ public class FsService extends Service implements Runnable {
 
     @Override
     public void run() {
-        Log.d(TAG, "Server thread running");
+        LogUtil.d("Server thread running");
 
         if (isConnectedToLocalNetwork() == false) {
-            Log.w(TAG, "run: There is no local network, bailing out");
+            LogUtil.d("run: There is no local network, bailing out");
             stopSelf();
             //start patch by dong
 //            sendBroadcast(new Intent(ACTION_FAILEDTOSTART));
-            if(mCallBack == null) {
+            if (mCallBack == null) {
                 mCallBack.onError(new Exception("no local net work"));
             }
             //end patch by dong
@@ -192,7 +193,7 @@ public class FsService extends Service implements Runnable {
             stopSelf();
             //start patch by dong
 //            sendBroadcast(new Intent(ACTION_FAILEDTOSTART));
-            if(mCallBack == null) {
+            if (mCallBack == null) {
                 mCallBack.onError(e);
             }
             //end patch by dong

@@ -7,6 +7,7 @@ import android.util.Log;
 
 import com.dd.webserver.jetty.common.PackageManager;
 import com.dd.webserver.util.AppInfo;
+import com.dd.webserver.util.LogUtil;
 import com.dd.webserver.util.Utils;
 
 import java.io.IOException;
@@ -33,30 +34,30 @@ public class AppManagerServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String uri = req.getRequestURI();
-        Log.d("ddddd", "getRequestURI:" + uri);
+        LogUtil.d("getRequestURI:" + uri);
 
         if (uri.equals(Utils.serverAppList)) {
             resp.setCharacterEncoding("UTF-8");
             resp.getWriter().println(getAppListJsonMsg(false, AppLists, 0));
-        }else if(uri.equals(Utils.serverAppRun)) {
+        } else if (uri.equals(Utils.serverAppRun)) {
             String parm = req.getParameter("pn");
-            if(parm == null || parm.isEmpty()) {
+            if (parm == null || parm.isEmpty()) {
                 resp.getWriter().println(getAppManagerJsonMsg("parm error!", 1));
-            }else {
+            } else {
                 luanchApk(parm);
                 resp.getWriter().println(getAppManagerJsonMsg("succeed!", 0));
             }
-        }else if(uri.equals(Utils.serverAppStop)) {
+        } else if (uri.equals(Utils.serverAppStop)) {
 
-        }else if(uri.equals(Utils.serverAppDel)) {
+        } else if (uri.equals(Utils.serverAppDel)) {
             String parm = req.getParameter("pn");
-            if(parm == null || parm.isEmpty()) {
+            if (parm == null || parm.isEmpty()) {
                 resp.getWriter().println(getAppManagerJsonMsg("parm error!", 1));
-            }else {
+            } else {
                 unInstallApK(parm);
                 resp.getWriter().println(getAppManagerJsonMsg("succeed!", 0));
             }
-        }else if(uri.equals(Utils.serverAppClear)) {
+        } else if (uri.equals(Utils.serverAppClear)) {
 
         }
     }
@@ -67,14 +68,14 @@ public class AppManagerServlet extends HttpServlet {
     }
 
     private void unInstallApK(String pn) {
-        Uri uri = Uri.parse("package:"+pn);//获取删除包名的URI
+        Uri uri = Uri.parse("package:" + pn);//获取删除包名的URI
         Intent i = new Intent();
         i.setAction(Intent.ACTION_DELETE);//设置我们要执行的卸载动作
         i.setData(uri);//设置获取到的URI
         context.startActivity(i);
     }
 
-    private void luanchApk(String pn)  {
+    private void luanchApk(String pn) {
         android.content.pm.PackageManager pm = context.getPackageManager();
         Intent i = pm.getLaunchIntentForPackage(pn);//获取启动的包名
         context.startActivity(i);

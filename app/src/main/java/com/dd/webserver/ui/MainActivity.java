@@ -1,8 +1,12 @@
 package com.dd.webserver.ui;
 
 import android.content.Intent;
+import android.net.DhcpInfo;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.format.Formatter;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -13,6 +17,9 @@ import com.dd.webserver.ftp.common.FsService;
 import com.dd.webserver.ftp.common.FsSettings;
 import com.dd.webserver.jetty.server.FileServer;
 import com.dd.webserver.jetty.server.JServer;
+import com.dd.webserver.netty.NettyServer2;
+import com.dd.webserver.util.FileUtil;
+import com.dd.webserver.util.LogUtil;
 import com.dd.webserver.util.Utils;
 
 import java.net.InetAddress;
@@ -59,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         mInfo = getResources().getString(R.string.internet_addr);
         try {
             mIpAddress = GetIpAddress();
-            if(!mIpAddress.equals("")) {
+            if (!mIpAddress.equals("")) {
                 infoTextView.setText(R.string.has_internet);
                 fileTextView.setText(R.string.has_internet);
                 ftpTextView.setText(R.string.has_internet);
@@ -78,54 +85,88 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        if(mJServer.isStarted()) mJServer.stop();
-        if(mFileServer.isStarted()) mFileServer.stop();
+        if (mJServer.isStarted()) mJServer.stop();
+        if (mFileServer.isStarted()) mFileServer.stop();
         super.onDestroy();
     }
 
     public void onButtonStart(View view) {
-        if(mJServer.isStarted()) {
+        if (mJServer.isStarted()) {
             mJServer.stop();
-            ((Button)view).setText(R.string.btn_start);
+            ((Button) view).setText(R.string.btn_start);
             infoTextView.setText(mIpAddress.isEmpty() ? R.string.no_internet : R.string.has_internet);
-        }else {
+        } else {
             mJServer.start();
-            ((Button)view).setText(R.string.btn_stop);
-            Utils.serverIpPort = mInfo+"http://"+mIpAddress+":"+PORT;
-            infoTextView.setText(mInfo+"http://"+mIpAddress+":"+PORT);
+            ((Button) view).setText(R.string.btn_stop);
+            Utils.serverIpPort = mInfo + "http://" + mIpAddress + ":" + PORT;
+            infoTextView.setText(mInfo + "http://" + mIpAddress + ":" + PORT);
         }
     }
 
     public void onFileStart(View view) {
-        if(mFileServer.isStarted()) {
+        if (mFileServer.isStarted()) {
             mFileServer.stop();
-            ((Button)view).setText(R.string.btn_file_start);
+            ((Button) view).setText(R.string.btn_file_start);
             fileTextView.setText(mIpAddress.isEmpty() ? R.string.no_internet : R.string.has_internet);
-        }else{
+        } else {
             mFileServer.start();
-            ((Button)view).setText(R.string.btn_file_stop);
-            Utils.serverFileIpPort = mInfo+"http://"+mIpAddress+":"+FILE_PORT;
-            fileTextView.setText(mInfo+"http://"+mIpAddress+":"+FILE_PORT);
+            ((Button) view).setText(R.string.btn_file_stop);
+            Utils.serverFileIpPort = mInfo + "http://" + mIpAddress + ":" + FILE_PORT;
+            fileTextView.setText(mInfo + "http://" + mIpAddress + ":" + FILE_PORT);
         }
     }
 
     public void onFtpStart(View view) {
-        if(FsService.isRunning()) {
-            stopService(serverService);
-            ((Button)view).setText(R.string.btn_file_start);
-            fileTextView.setText(mIpAddress.isEmpty() ? R.string.no_internet : R.string.has_internet);
-        }else {
-            InetAddress address = FsService.getLocalInetAddress();
-            if(address == null) {
-                Log.v("FTP", "Unable to retrieve wifi ip address");
-                ftpTextView.setText(R.string.no_internet);
-                return;
+        new Thread() {
+            public void run() {
+                startNettyServer();
             }
-            String iptext = "ftp://" + address.getHostAddress() + ":" + FsSettings.getPortNumber() + "/";
-            ftpTextView.setText(iptext);
-            startService(serverService);
-            ((Button)view).setText(R.string.btn_file_stop);
+
+        }.start();
+
+//        if (FsService.isRunning()) {
+//            stopService(serverService);
+//            ((Button) view).setText(R.string.btn_file_start);
+//            fileTextView.setText(mIpAddress.isEmpty() ? R.string.no_internet : R.string.has_internet);
+//        } else {
+//            InetAddress address = FsService.getLocalInetAddress();
+//            if (address == null) {
+//                Log.v("FTP", "Unable to retrieve wifi ip address");
+//                ftpTextView.setText(R.string.no_internet);
+//                return;
+//            }
+//            String iptext = "ftp://" + address.getHostAddress() + ":" + FsSettings.getPortNumber() + "/";
+//            ftpTextView.setText(iptext);
+//            startService(serverService);
+//            ((Button) view).setText(R.string.btn_file_stop);
+//        }
+    }
+
+    private void startNettyServer() {
+        WifiManager wifiManager = (WifiManager) getSystemService(WIFI_SERVICE);
+        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+        DhcpInfo dhcpInfo = wifiManager.getDhcpInfo();
+        String dhIp = "dh_ip:" + FormatIP(dhcpInfo.ipAddress) + "\n"
+                + "dh_gateway" + FormatIP(dhcpInfo.gateway);
+        String ipAddress = intToIp(wifiInfo.getIpAddress());
+
+        LogUtil.i("saveFile" + FileUtil.getSDCardRoot());
+        NettyServer2 nettyServer = new NettyServer2();
+        try {
+            nettyServer.run(8888, ipAddress);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
+    }
+
+    public static String FormatIP(int IpAddress) {
+        return Formatter.formatIpAddress(IpAddress);
+    }
+
+    public static String intToIp(int i) {
+        return ((i) & 0xFF) + "." + ((i >> 8) & 0xFF) + "."
+                + ((i >> 16) & 0xFF) + "." + (i >> 24 & 0xFF);
     }
 
     public void onFtpSettings(View view) {
@@ -141,6 +182,7 @@ public class MainActivity extends AppCompatActivity {
      * 表示: 过滤掉ipv6的地址.不管无线还是有线 都有这个地址,
      * 我这边显示地址大体是:fe80::288:88ff:fe00:1%eth0 fe80::ee17:2fff:fece:c0b4%wlan0
      * 一般都是出现在第一次循环.第二次循环就是真正的ipv4的地址.
+     *
      * @return
      * @throws SocketException
      */
